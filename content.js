@@ -38,8 +38,8 @@ const observer = new IntersectionObserver((entries) => {
       
       // Check if auto-hide is enabled from chrome.storage
       chrome.storage.local.get(['autoHide'], (result) => {
-        if (result.autoHide === true && newCount >= 4) {
-          console.log(`Threshold reached (${newCount} >= 4), hiding post`);
+        if (result.autoHide === true && newCount >= 2) {
+          console.log(`Threshold reached (${newCount} >= 2), hiding post`);
           hidePost(entry.target);
         }
       });
