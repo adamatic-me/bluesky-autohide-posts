@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bluesky Auto-Hide Settings</title>
+  <style>
+    html {      
+      border: 1px solid #42576c;
+    }
+    body {
+      width: 300px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #1a1f2c;
+      color: #f1f3f5;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    button {
+      background: #2e3f51;
+      color: #f1f3f5;
+      border: 1px solid #42576c;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #3a4e63;
+    }
+    
+    .status {
+      font-size: 14px;
+      color: #8c9eb2;
+      margin-top: 8px;
+      min-height: 20px;
+    }
+
+    .count {
+      font-size: 16px;
+      color: #f1f3f5;
+      text-align: center;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+    }
+    
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .toggle input {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toggle">
+      <label for="autoHideToggle">Auto-hide:</label>
+      <input type="checkbox" id="autoHideToggle">
+    </div>
+    <div id="count" class="count">Loading post count...</div>
+    <button id="unhideAll">Un-hide All Posts</button>
+    <div id="status" class="status"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

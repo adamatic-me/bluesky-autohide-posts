@@ -3,9 +3,15 @@
   "name": "Bluesky Auto-Hide",
   "version": "1.0",
   "description": "Automatically hides Bluesky posts after scrolling past",
-  "permissions": ["*://bsky.app/*", "storage"],
+  "permissions": ["*://bsky.app/*", "storage", "tabs"],
   "content_scripts": [{
     "matches": ["*://bsky.app/*"],
     "js": ["content.js"]
-  }]
+  }],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/hide48.png"
+    }
+  }
 }
