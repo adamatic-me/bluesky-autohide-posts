@@ -31,20 +31,33 @@ const observer = new IntersectionObserver((entries) => {
   if (!isMainFeedOrList()) return;
 
   entries.forEach(entry => {
-    if (!entry.isIntersecting) {
+    // Get the viewport height for calculations
+    const viewportHeight = window.innerHeight;
+    // Get the post's position relative to the viewport
+    const rect = entry.target.getBoundingClientRect();
+    
+    // Check if the post is completely above the viewport (scrolled past)
+    // We add a buffer of 4 posts worth of space (roughly 400px each) before considering it "past"
+    const isCompletelyPast = rect.bottom < -1600;  // 4 posts * ~400px height
+    
+    if (!entry.isIntersecting && isCompletelyPast) {
       const newCount = (postScrollCounts.get(entry.target) || 0) + 1;
       postScrollCounts.set(entry.target, newCount);
       console.log(`Post scroll count increased to ${newCount}`);
       
       // Check if auto-hide is enabled from chrome.storage
       chrome.storage.local.get(['autoHide'], (result) => {
-        if (result.autoHide === true && newCount >= 2) {
-          console.log(`Threshold reached (${newCount} >= 2), hiding post`);
+        if (result.autoHide === true && newCount >= 4) {  // Increased threshold to 4
+          console.log(`Threshold reached (${newCount} >= 4), hiding post`);
           hidePost(entry.target);
         }
       });
     }
   });
+}, {
+  // Configure the observer to trigger when posts enter/leave the viewport
+  threshold: [0, 0.1, 0.5, 1],  // Track multiple intersection points for better accuracy
+  rootMargin: "0px"  // No margin to ensure accurate viewport calculations
 });
 
 function getPostATUri(post) {
