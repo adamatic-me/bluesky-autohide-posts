@@ -1,7 +1,7 @@
 // content.js
 /* This script automatically hides posts after they've been scrolled past multiple times.
    It works by:
-   1. Checking if we're on the main feed (https://bsky.app/)
+   1. Checking if we're on the main feed (https://bsky.app/) or a list feed
    2. Watching for posts to be dynamically loaded into the page
    3. Tracking how many times each post is scrolled past
    4. Adding the post's AT Protocol URI to localStorage's hiddenPosts array when threshold is reached
@@ -12,16 +12,23 @@
 
 const postScrollCounts = new Map();
 
-// Function to check if we're on the main feed
-function isMainFeed() {
-  // Only run on exactly https://bsky.app/ or https://bsky.app
+// Function to check if we're on the main feed or a list feed
+function isMainFeedOrList() {
   const url = window.location.href;
-  return url === 'https://bsky.app/' || url === 'https://bsky.app';
+  // Check for main feed
+  if (url === 'https://bsky.app/' || url === 'https://bsky.app') {
+    return true;
+  }
+  // Check for list feed - matches any URL containing /lists/ after bsky.app
+  if (url.match(/^https:\/\/bsky\.app\/.*\/lists\/.+/)) {
+    return true;
+  }
+  return false;
 }
 
 const observer = new IntersectionObserver((entries) => {
-  // Only process if we're on the main feed
-  if (!isMainFeed()) return;
+  // Only process if we're on the main feed or a list
+  if (!isMainFeedOrList()) return;
 
   entries.forEach(entry => {
     if (!entry.isIntersecting) {
@@ -146,9 +153,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function startObserving() {
-  // Only observe if we're on the main feed
-  if (!isMainFeed()) {
-    console.log('Not on main feed, skipping observation');
+  // Only observe if we're on the main feed or a list
+  if (!isMainFeedOrList()) {
+    console.log('Not on main feed or list, skipping observation');
     return;
   }
 
@@ -171,8 +178,8 @@ chrome.storage.local.get(['autoHide'], (result) => {
   const isAutoHideOn = result.autoHide === true;
   if (isAutoHideOn) {
     console.log('Auto-hide is enabled, starting observation...');
-    // Only observe if we're on the main feed
-    if (isMainFeed()) {
+    // Only observe if we're on the main feed or a list
+    if (isMainFeedOrList()) {
       // Observe the entire document for changes
       postsObserver.observe(document.body, { 
         childList: true, 
@@ -180,7 +187,7 @@ chrome.storage.local.get(['autoHide'], (result) => {
       });
       startObserving();
     } else {
-      console.log('Not on main feed, not starting observation');
+      console.log('Not on main feed or list, not starting observation');
     }
   } else {
     console.log('Auto-hide is disabled, not starting observation');
@@ -195,19 +202,19 @@ new MutationObserver(() => {
     lastUrl = url;
     console.log('URL changed, checking if we should start/stop observation');
     
-    // If we're not on the main feed, stop observing
-    if (!isMainFeed()) {
-      console.log('Left main feed, stopping observation');
+    // If we're not on the main feed or a list, stop observing
+    if (!isMainFeedOrList()) {
+      console.log('Left main feed/list, stopping observation');
       postScrollCounts.clear();
       document.querySelectorAll('[data-testid^="feedItem-"]').forEach(post => {
         observer.unobserve(post);
       });
       postsObserver.disconnect();
     } else {
-      // If we're back on the main feed and auto-hide is enabled, start observing
+      // If we're back on the main feed or a list and auto-hide is enabled, start observing
       chrome.storage.local.get(['autoHide'], (result) => {
         if (result.autoHide === true) {
-          console.log('Back on main feed, starting observation');
+          console.log('Back on main feed or list, starting observation');
           postsObserver.observe(document.body, { 
             childList: true, 
             subtree: true 
