@@ -1,16 +1,14 @@
 // content.js
-/* This script automatically hides posts after they've been scrolled past multiple times.
+/* This script automatically hides posts when they are scrolled one viewport height above the current view.
    It works by:
    1. Checking if we're on the main feed (https://bsky.app/) or a list feed
    2. Watching for posts to be dynamically loaded into the page
-   3. Tracking how many times each post is scrolled past
-   4. Adding the post's AT Protocol URI to localStorage's hiddenPosts array when threshold is reached
-   
+   3. Calculating each post's position relative to the viewport
+   4. Hiding posts that are one viewport height above the current view
+
    The script directly modifies localStorage to mark posts as hidden.
    The extension's enabled/disabled state is stored in chrome.storage.local.
 */
-
-const postScrollCounts = new Map();
 
 // Function to check if we're on the main feed or a list feed
 function isMainFeedOrList() {
@@ -26,25 +24,32 @@ function isMainFeedOrList() {
   return false;
 }
 
+// Create an observer with custom threshold and rootMargin to track posts above viewport
 const observer = new IntersectionObserver((entries) => {
   // Only process if we're on the main feed or a list
   if (!isMainFeedOrList()) return;
 
   entries.forEach(entry => {
     if (!entry.isIntersecting) {
-      const newCount = (postScrollCounts.get(entry.target) || 0) + 1;
-      postScrollCounts.set(entry.target, newCount);
-      console.log(`Post scroll count increased to ${newCount}`);
+      const rect = entry.target.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
       
-      // Check if auto-hide is enabled from chrome.storage
-      chrome.storage.local.get(['autoHide'], (result) => {
-        if (result.autoHide === true && newCount >= 2) {
-          console.log(`Threshold reached (${newCount} >= 2), hiding post`);
-          hidePost(entry.target);
-        }
-      });
+      // Check if post is above viewport by at least one viewport height
+      if (rect.bottom < -viewportHeight) {
+        // Check if auto-hide is enabled from chrome.storage
+        chrome.storage.local.get(['autoHide'], (result) => {
+          if (result.autoHide === true) {
+            console.log('Post is one viewport height above, hiding');
+            hidePost(entry.target);
+          }
+        });
+      }
     }
   });
+}, {
+  // Set rootMargin to track area above viewport
+  rootMargin: '200% 0px 0px 0px',
+  threshold: [0, 1]
 });
 
 function getPostATUri(post) {
@@ -92,9 +97,6 @@ function hidePost(post) {
     localStorage.setItem('BSKY_STORAGE', JSON.stringify(data));
     console.log('Post hidden:', postUri);
   }
-  
-  // Clean up our scroll tracking
-  postScrollCounts.delete(post);
 }
 
 // Listen for messages from the popup
@@ -130,7 +132,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // When auto-hide is enabled, start fresh with post counting
     if (request.enabled) {
       console.log('Auto-hide enabled, starting observation');
-      postScrollCounts.clear(); // Reset counts
       // Start observing DOM changes
       postsObserver.observe(document.body, { 
         childList: true, 
@@ -139,7 +140,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       startObserving(); // Start observing current posts
     } else {
       console.log('Auto-hide disabled, clearing observation');
-      postScrollCounts.clear(); // Clear the counts
       // Stop observing all current posts
       document.querySelectorAll('[data-testid^="feedItem-"]').forEach(post => {
         observer.unobserve(post);
@@ -163,10 +163,7 @@ function startObserving() {
   console.log(`Found ${posts.length} posts to observe`);
   
   posts.forEach(post => {
-    // Only observe posts we haven't seen before
-    if (!postScrollCounts.has(post)) {
-      observer.observe(post);
-    }
+    observer.observe(post);
   });
 }
 
@@ -205,7 +202,6 @@ new MutationObserver(() => {
     // If we're not on the main feed or a list, stop observing
     if (!isMainFeedOrList()) {
       console.log('Left main feed/list, stopping observation');
-      postScrollCounts.clear();
       document.querySelectorAll('[data-testid^="feedItem-"]').forEach(post => {
         observer.unobserve(post);
       });
