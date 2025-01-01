@@ -2,13 +2,24 @@
   "manifest_version": 3,
   "name": "Bluesky Auto-Hide",
   "version": "1.0",
-  "description": "Automatically hides Bluesky posts after scrolling past",
-  "permissions": ["storage", "tabs"],
-  "host_permissions": ["*://bsky.app/*"],
+  "description": "Automatically hides Bluesky posts after scrolling past them",
+  "permissions": [
+    "storage",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "*://bsky.app/*",
+    "*://*.bsky.network/*",
+    "*://*.host.bsky.network/*"
+  ],
   "content_scripts": [{
     "matches": ["*://bsky.app/*"],
-    "js": ["content.js"]
+    "js": ["browser-polyfill.js", "content.js"]
   }],
+  "background": {
+    "scripts": ["browser-polyfill.js", "background.js"]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
