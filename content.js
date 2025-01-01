@@ -1,9 +1,10 @@
 // content.js
 /* This script automatically hides posts after they've been scrolled past multiple times.
    It works by:
-   1. Watching for posts to be dynamically loaded into the page
-   2. Tracking how many times each post is scrolled past
-   3. Adding the post's AT Protocol URI to localStorage's hiddenPosts array when threshold is reached
+   1. Checking if we're on the main feed (https://bsky.app/)
+   2. Watching for posts to be dynamically loaded into the page
+   3. Tracking how many times each post is scrolled past
+   4. Adding the post's AT Protocol URI to localStorage's hiddenPosts array when threshold is reached
    
    The script directly modifies localStorage to mark posts as hidden.
    The extension's enabled/disabled state is stored in chrome.storage.local.
@@ -11,7 +12,17 @@
 
 const postScrollCounts = new Map();
 
+// Function to check if we're on the main feed
+function isMainFeed() {
+  // Only run on exactly https://bsky.app/ or https://bsky.app
+  const url = window.location.href;
+  return url === 'https://bsky.app/' || url === 'https://bsky.app';
+}
+
 const observer = new IntersectionObserver((entries) => {
+  // Only process if we're on the main feed
+  if (!isMainFeed()) return;
+
   entries.forEach(entry => {
     if (!entry.isIntersecting) {
       const newCount = (postScrollCounts.get(entry.target) || 0) + 1;
@@ -135,6 +146,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function startObserving() {
+  // Only observe if we're on the main feed
+  if (!isMainFeed()) {
+    console.log('Not on main feed, skipping observation');
+    return;
+  }
+
   const posts = document.querySelectorAll('[data-testid^="feedItem-"]');
   console.log(`Found ${posts.length} posts to observe`);
   
@@ -154,15 +171,52 @@ chrome.storage.local.get(['autoHide'], (result) => {
   const isAutoHideOn = result.autoHide === true;
   if (isAutoHideOn) {
     console.log('Auto-hide is enabled, starting observation...');
-    // Observe the entire document for changes
-    postsObserver.observe(document.body, { 
-      childList: true, 
-      subtree: true 
-    });
-    startObserving();
+    // Only observe if we're on the main feed
+    if (isMainFeed()) {
+      // Observe the entire document for changes
+      postsObserver.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+      });
+      startObserving();
+    } else {
+      console.log('Not on main feed, not starting observation');
+    }
   } else {
     console.log('Auto-hide is disabled, not starting observation');
   }
 });
+
+// Listen for URL changes since Bluesky is a single-page app
+let lastUrl = window.location.href;
+new MutationObserver(() => {
+  const url = window.location.href;
+  if (url !== lastUrl) {
+    lastUrl = url;
+    console.log('URL changed, checking if we should start/stop observation');
+    
+    // If we're not on the main feed, stop observing
+    if (!isMainFeed()) {
+      console.log('Left main feed, stopping observation');
+      postScrollCounts.clear();
+      document.querySelectorAll('[data-testid^="feedItem-"]').forEach(post => {
+        observer.unobserve(post);
+      });
+      postsObserver.disconnect();
+    } else {
+      // If we're back on the main feed and auto-hide is enabled, start observing
+      chrome.storage.local.get(['autoHide'], (result) => {
+        if (result.autoHide === true) {
+          console.log('Back on main feed, starting observation');
+          postsObserver.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+          });
+          startObserving();
+        }
+      });
+    }
+  }
+}).observe(document, { subtree: true, childList: true });
 
 console.log('Initial setup complete, watching for posts...');
