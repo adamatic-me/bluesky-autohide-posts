@@ -6,6 +6,7 @@
    3. Adding the post's AT Protocol URI to localStorage's hiddenPosts array when threshold is reached
    
    The script directly modifies localStorage to mark posts as hidden.
+   The extension's enabled/disabled state is stored in chrome.storage.local.
 */
 
 const postScrollCounts = new Map();
@@ -17,10 +18,13 @@ const observer = new IntersectionObserver((entries) => {
       postScrollCounts.set(entry.target, newCount);
       console.log(`Post scroll count increased to ${newCount}`);
       
-      if (newCount >= 2) {
-        console.log(`Threshold reached (${newCount} >= 2), hiding post`);
-        hidePost(entry.target);
-      }
+      // Check if auto-hide is enabled from chrome.storage
+      chrome.storage.local.get(['autoHide'], (result) => {
+        if (result.autoHide === true && newCount >= 2) {
+          console.log(`Threshold reached (${newCount} >= 2), hiding post`);
+          hidePost(entry.target);
+        }
+      });
     }
   });
 });
@@ -98,23 +102,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.error('Error un-hiding posts:', error);
       sendResponse({ success: false, error: error.message });
     }
-    return true; // Keep the message channel open for the async response
-  }
-  
-  if (request.action === 'getHiddenCount') {
-    try {
-      // Get current storage
-      const storage = localStorage.getItem('BSKY_STORAGE');
-      const data = storage ? JSON.parse(storage) : {};
-      const count = data.hiddenPosts?.length || 0;
-      
-      sendResponse({ count });
-    } catch (error) {
-      console.error('Error getting hidden post count:', error);
-      sendResponse({ count: 0 });
+  } else if (request.action === 'getHiddenCount') {
+    // Get current hidden posts from localStorage
+    const storage = localStorage.getItem('BSKY_STORAGE');
+    const data = storage ? JSON.parse(storage) : {};
+    const count = data.hiddenPosts ? data.hiddenPosts.length : 0;
+    sendResponse({ count });
+  } else if (request.action === 'toggleAutoHide') {
+    // When auto-hide is enabled, start fresh with post counting
+    if (request.enabled) {
+      console.log('Auto-hide enabled, starting observation');
+      postScrollCounts.clear(); // Reset counts
+      // Start observing DOM changes
+      postsObserver.observe(document.body, { 
+        childList: true, 
+        subtree: true 
+      });
+      startObserving(); // Start observing current posts
+    } else {
+      console.log('Auto-hide disabled, clearing observation');
+      postScrollCounts.clear(); // Clear the counts
+      // Stop observing all current posts
+      document.querySelectorAll('[data-testid^="feedItem-"]').forEach(post => {
+        observer.unobserve(post);
+      });
+      // Stop observing DOM changes
+      postsObserver.disconnect();
     }
-    return true; // Keep the message channel open for the async response
+    sendResponse({ success: true });
   }
+  return true; // Keep the message channel open for async response
 });
 
 function startObserving() {
@@ -132,11 +149,20 @@ function startObserving() {
 // Watch for any changes to the page content
 const postsObserver = new MutationObserver(startObserving);
 
-// Observe the entire document for changes
-postsObserver.observe(document.body, { 
-  childList: true, 
-  subtree: true 
+// Only start observing if auto-hide is enabled
+chrome.storage.local.get(['autoHide'], (result) => {
+  const isAutoHideOn = result.autoHide === true;
+  if (isAutoHideOn) {
+    console.log('Auto-hide is enabled, starting observation...');
+    // Observe the entire document for changes
+    postsObserver.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+    startObserving();
+  } else {
+    console.log('Auto-hide is disabled, not starting observation');
+  }
 });
 
 console.log('Initial setup complete, watching for posts...');
-startObserving();

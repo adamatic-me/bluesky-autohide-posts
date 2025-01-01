@@ -23,16 +23,39 @@ function updatePostCount() {
   });
 }
 
+// Function to update toggle state text based on checkbox state
+function updateToggleStateText(isChecked) {
+  const toggleState = document.getElementById('toggleState');
+  toggleState.textContent = isChecked ? 'Enabled' : 'Disabled';
+}
+
 // Function to handle toggle switch state
 function handleToggle() {
   const toggle = document.getElementById('autoHideToggle');
   
-  // Load the current state from localStorage
-  const isAutoHideOn = localStorage.getItem('autoHide') === 'true';
-  toggle.checked = isAutoHideOn;
+  // Load the current state from chrome.storage.local
+  chrome.storage.local.get(['autoHide'], (result) => {
+    const isAutoHideOn = result.autoHide === true;
+    toggle.checked = isAutoHideOn;
+    updateToggleStateText(isAutoHideOn); // Update initial state text
+  });
   
   toggle.addEventListener('change', () => {
-    localStorage.setItem('autoHide', toggle.checked);
+    const newState = toggle.checked;
+    // Save to chrome.storage.local
+    chrome.storage.local.set({ autoHide: newState }, () => {
+      updateToggleStateText(newState);
+      
+      // Notify content script of the change
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && tabs[0].url && tabs[0].url.includes('bsky.app')) {
+          chrome.tabs.sendMessage(tabs[0].id, { 
+            action: 'toggleAutoHide', 
+            enabled: newState 
+          });
+        }
+      });
+    });
   });
 }
 
