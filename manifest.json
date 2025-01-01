@@ -11,7 +11,9 @@
   "browser_action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "48": "icons/hide48.png"
+      "48": "icons/hide48.png",
+      "96": "icons/hide96.png",
+      "128": "icons/hide128.png"
     }
   }
 }
