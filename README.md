@@ -1,6 +1,8 @@
 # Bluesky Auto-Hide Extension
 
-I got tired of seeing the same posts over and over again in my feeds. This is a browser extension that automatically hides Bluesky posts after you've scrolled past them, helping to reduce repetitive content in your feed.
+As I use Bluesky very often, I got tired of seeing the same posts over and over again in my feeds and Lists. Sometimes I wouldn't get to some post far down one of my feeds, and I'd have to scroll past all the previously viewed posts to get to it. 
+
+This is browser extension will automatically hide Bluesky posts after you've scrolled past them, helping to reduce repetitive content in your feed.
 
 If you have any suggestions or feedback, please open an issue on GitHub, or create a pull request if you would like to contribute.
 
