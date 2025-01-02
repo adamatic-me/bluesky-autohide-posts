@@ -176,6 +176,40 @@
     .count.loading {
       animation: pulse 1.5s infinite;
     }
+
+    /* Debug section styles */
+    .debug-section {
+      margin-top: 16px;
+      padding: 16px;
+      border-top: 1px solid rgba(66, 87, 108, 0.2);
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .debug-section h3 {
+      margin-bottom: 8px;
+      color: #8899a6;
+    }
+
+    .cursor-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .feed-cursors {
+      margin-bottom: 12px;
+    }
+
+    .feed-id {
+      color: #1d9bf0;
+      word-break: break-all;
+    }
+
+    .cursor-item {
+      color: #8899a6;
+      margin-left: 8px;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -194,6 +228,13 @@
     <div id="count" class="count loading">Loading post count...</div>
     <button id="unhideAll">Un-hide All Posts</button>
     <div id="status" class="status"></div>
+  </div>
+  <!-- Debug section -->
+  <div class="debug-section">
+    <h3>Stored Feed Cursors</h3>
+    <div id="cursorDebug" class="cursor-list">
+      <!-- Cursors will be populated here -->
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

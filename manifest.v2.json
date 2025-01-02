@@ -6,14 +6,13 @@
   "permissions": [
     "storage",
     "tabs",
-    "webRequest",
-    "webRequestBlocking",
     "*://bsky.app/*",
     "*://*.bsky.network/*",
     "*://shiitake.us-east.host.bsky.network/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "persistent": true
   },
   "content_scripts": [{
     "matches": ["*://bsky.app/*"],
