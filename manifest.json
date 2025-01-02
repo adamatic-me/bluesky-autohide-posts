@@ -3,6 +3,10 @@
   "name": "Bluesky Auto-Hide & Feed Memory",
   "version": "1.1",
   "description": "Automatically hides scrolled posts and remembers feed positions for quick navigation",
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
   "permissions": [
     "storage",
     "tabs",
@@ -12,13 +16,12 @@
     "*://*.bsky.network/*",
     "*://shiitake.us-east.host.bsky.network/*"
   ],
-  "background": {
-    "scripts": ["background.js"]
-  },
-  "content_scripts": [{
-    "matches": ["*://bsky.app/*"],
-    "js": ["content.js"]
-  }],
+  "content_scripts": [
+    {
+      "matches": ["*://bsky.app/*"],
+      "js": ["content.js"]
+    }
+  ],
   "browser_action": {
     "default_popup": "popup.html",
     "default_icon": {

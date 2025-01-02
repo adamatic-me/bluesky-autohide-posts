@@ -12,14 +12,19 @@
     "*://*.bsky.network/*",
     "*://shiitake.us-east.host.bsky.network/*"
   ],
+  "content_scripts": [{
+    "matches": [
+      "*://bsky.app/*",
+      "*://*.bsky.network/*",
+      "*://shiitake.us-east.host.bsky.network/*"
+    ],
+    "js": ["content.js"],
+    "run_at": "document_start"
+  }],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "content_scripts": [{
-    "matches": ["*://bsky.app/*"],
-    "js": ["content.js"]
-  }],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

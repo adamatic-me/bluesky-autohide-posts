@@ -27,33 +27,63 @@ function updatePostCount() {
 }
 
 // Function to update toggle state text based on checkbox state
-function updateToggleStateText(isChecked) {
-  const toggleState = document.getElementById('toggleState');
-  toggleState.textContent = isChecked ? 'Enabled' : 'Disabled';
+function updateToggleStateText(isChecked, elementId, enabledText = 'Enabled', disabledText = 'Disabled') {
+  const toggleState = document.getElementById(elementId);
+  toggleState.textContent = isChecked ? enabledText : disabledText;
 }
 
-// Function to handle toggle switch state
-function handleToggle() {
+// Function to handle auto-hide toggle switch state
+function handleAutoHideToggle() {
   const toggle = document.getElementById('autoHideToggle');
   
   // Load the current state from storage
   api.storage.local.get(['autoHide'], (result) => {
     const isAutoHideOn = result.autoHide === true;
     toggle.checked = isAutoHideOn;
-    updateToggleStateText(isAutoHideOn); // Update initial state text
+    updateToggleStateText(isAutoHideOn, 'toggleState');
   });
   
   toggle.addEventListener('change', () => {
     const newState = toggle.checked;
     // Save to storage
     api.storage.local.set({ autoHide: newState }, () => {
-      updateToggleStateText(newState);
+      updateToggleStateText(newState, 'toggleState');
       
       // Notify content script of the change
       api.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0] && tabs[0].url && tabs[0].url.includes('bsky.app')) {
           api.tabs.sendMessage(tabs[0].id, { 
             action: 'toggleAutoHide', 
+            enabled: newState 
+          });
+        }
+      });
+    });
+  });
+}
+
+// Function to handle reload old feed toggle switch state
+function handleReloadOldFeedToggle() {
+  const toggle = document.getElementById('reloadOldFeedToggle');
+  
+  // Load the current state from storage
+  api.storage.local.get(['reloadOldFeed'], (result) => {
+    const isReloadOldFeedOn = result.reloadOldFeed === true;
+    toggle.checked = isReloadOldFeedOn;
+    updateToggleStateText(isReloadOldFeedOn, 'reloadOldFeedState', 'Reload old feed: On', 'Reload old feed: Off');
+  });
+  
+  toggle.addEventListener('change', () => {
+    const newState = toggle.checked;
+    // Save to storage
+    api.storage.local.set({ reloadOldFeed: newState }, () => {
+      updateToggleStateText(newState, 'reloadOldFeedState', 'Reload old feed: On', 'Reload old feed: Off');
+      
+      // Notify content script of the change
+      api.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && tabs[0].url && tabs[0].url.includes('bsky.app')) {
+          api.tabs.sendMessage(tabs[0].id, { 
+            action: 'toggleReloadOldFeed', 
             enabled: newState 
           });
         }
@@ -78,12 +108,10 @@ function updateCursorDebug() {
     }
     
     cursorDebug.innerHTML = Object.entries(feedCursors)
-      .map(([feedId, cursors]) => `
+      .map(([feedId, cursor]) => `
         <div class="feed-cursors">
           <div class="feed-id">${feedId}</div>
-          ${cursors.map((cursor, i) => `
-            <div class="cursor-item">${i + 1}: ${cursor}</div>
-          `).join('')}
+          <div class="cursor-item">${cursor}</div>
         </div>
       `).join('');
     console.log('Updated cursor debug display with', Object.keys(feedCursors).length, 'feeds');
@@ -94,7 +122,8 @@ function updateCursorDebug() {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Popup opened, initializing...');
   updatePostCount();
-  handleToggle();
+  handleAutoHideToggle();
+  handleReloadOldFeedToggle();
   updateCursorDebug();
   
   // Set up refresh button
